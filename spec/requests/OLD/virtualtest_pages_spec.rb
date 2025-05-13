@@ -5,15 +5,15 @@ describe "Virtualtest pages" do
 
   subject { page }
 
-  let(:admin) { FactoryGirl.create(:admin) }
-  let(:user_with_rating_199) { FactoryGirl.create(:user, rating: 199) }
-  let(:user_with_rating_200) { FactoryGirl.create(:user, rating: 200) }
-  let!(:section) { FactoryGirl.create(:section) }
-  let!(:chapter) { FactoryGirl.create(:chapter, online: true, name: "Mon chapitre prérequis") }
-  let!(:virtualtest) { FactoryGirl.create(:virtualtest, online: true, number: 42) }
-  let!(:problem) { FactoryGirl.create(:problem, section: section, online: true, level: 1, number: 1123, virtualtest: virtualtest, position: 1, statement: "Statement1") }
-  let!(:problem_with_prerequisite) { FactoryGirl.create(:problem, section: section, online: true, level: 2, number: 1224, virtualtest: virtualtest, position: 2, statement: "Statement2") }
-  let!(:offline_problem) { FactoryGirl.create(:problem, section: section, online: false, level: 3, number: 1345, position: 3, statement: "Statement3") }
+  let(:admin) { FactoryBot.create(:admin) }
+  let(:user_with_rating_199) { FactoryBot.create(:user, rating: 199) }
+  let(:user_with_rating_200) { FactoryBot.create(:user, rating: 200) }
+  let!(:section) { FactoryBot.create(:section) }
+  let!(:chapter) { FactoryBot.create(:chapter, online: true, name: "Mon chapitre prérequis") }
+  let!(:virtualtest) { FactoryBot.create(:virtualtest, online: true, number: 42) }
+  let!(:problem) { FactoryBot.create(:problem, section: section, online: true, level: 1, number: 1123, virtualtest: virtualtest, position: 1, statement: "Statement1") }
+  let!(:problem_with_prerequisite) { FactoryBot.create(:problem, section: section, online: true, level: 2, number: 1224, virtualtest: virtualtest, position: 2, statement: "Statement2") }
+  let!(:offline_problem) { FactoryBot.create(:problem, section: section, online: false, level: 3, number: 1345, position: 3, statement: "Statement3") }
   
   let!(:newsolution) { "Voici ma solution à votre problème" }
   let!(:newsolution2) { "Finalement voici une autre solution" }
@@ -96,7 +96,7 @@ describe "Virtualtest pages" do
       
       describe "and tries to start the test while already in another test" do
         before do
-          other_virtualtest = FactoryGirl.create(:virtualtest, online: true, number: 43, duration: 60)
+          other_virtualtest = FactoryBot.create(:virtualtest, online: true, number: 43, duration: 60)
           Takentest.create(virtualtest: other_virtualtest, user: user_with_rating_200, taken_time: DateTime.now - 10.minutes, status: :in_progress)
           click_link "Commencer ce test"
         end
@@ -118,7 +118,7 @@ describe "Virtualtest pages" do
       end
       
       describe "and tries to start the test while having received a sanction" do
-        let!(:sanction) { FactoryGirl.create(:sanction, user: user_with_rating_200, sanction_type: :no_submission) }
+        let!(:sanction) { FactoryBot.create(:sanction, user: user_with_rating_200, sanction_type: :no_submission) }
         before do
           click_link "Commencer ce test"
         end
@@ -191,16 +191,17 @@ describe "Virtualtest pages" do
             describe "and the time stops" do
               let!(:takentest) { Takentest.where(:user => user_with_rating_200, :virtualtest => virtualtest).first }
               before do
-                takentest.update_attribute(:taken_time, DateTime.now - virtualtest.duration - 1)
+                takentest.update_attribute(:taken_time, DateTime.now - (virtualtest.duration + 1).minutes)
                 visit virtualtest_path(virtualtest, :p => problem) # Should redirect to virtualtests page
               end
-              it do
-                should have_selector("h1", text: "Tests virtuels")
-                should have_link("Problème 1", href: problem_path(problem, :sub => problem.submissions.where(:user => user_with_rating_200).first))
-                should have_link("Problème 2", href: problem_path(problem_with_prerequisite))
-                should have_content("? / 7") # Problème 1
-                should have_content("0 / 7") # Problème 2 (no submission)
-                should have_no_content("Temps restant")
+              specify do
+                expect(problem.submissions.order(:id).last.created_at).to be_within(1.second).of(takentest.taken_time + virtualtest.duration.minutes)
+                expect(page).to have_selector("h1", text: "Tests virtuels")
+                expect(page).to have_link("Problème 1", href: problem_path(problem, :sub => problem.submissions.where(:user => user_with_rating_200).first))
+                expect(page).to have_link("Problème 2", href: problem_path(problem_with_prerequisite))
+                expect(page).to have_content("? / 7") # Problème 1
+                expect(page).to have_content("0 / 7") # Problème 2 (no submission)
+                expect(page).to have_no_content("Temps restant")
               end
             end
           end
@@ -214,7 +215,7 @@ describe "Virtualtest pages" do
           end
           
           describe "and writes a new solution after having written another one in another tab" do
-            let!(:submission) { FactoryGirl.create(:submission, problem: problem, user: user_with_rating_200, status: :draft, intest: true, content: newsolution) }
+            let!(:submission) { FactoryBot.create(:submission, problem: problem, user: user_with_rating_200, status: :draft, intest: true, content: newsolution) }
             before do
               fill_in "MathInput", with: newsolution2
               click_button "Enregistrer cette solution"

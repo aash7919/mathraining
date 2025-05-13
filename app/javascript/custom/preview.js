@@ -7,7 +7,6 @@ var Preview = {
   timeout: null,     // store setTimout id
   mjRunning: false,  // true when MathJax is processing
   needUpdate: false, // true when MathJax needs to re-run
-  oldText: null,     // used to check if an update is needed
 
   //
   //  Get the preview and buffer DIV's
@@ -17,7 +16,7 @@ var Preview = {
       s = "";
     }
     this.preview = document.getElementById("MathPreview" + s);
-    this.buffer = document.getElementById("MathBuffer" + s);
+    this.buff = document.getElementById("MathBuffer" + s);
     this.input = document.getElementById("MathInput" + s);
     this.stop = document.getElementById("stop" + s);
     this.safe = true;
@@ -60,8 +59,8 @@ var Preview = {
   //  the results of running MathJax are more accurate that way.)
   //
   SwapBuffers: function () {
-    var buffer = this.preview, preview = this.buffer;
-    this.buffer = buffer; this.preview = preview;
+    var buffer = this.preview, preview = this.buff;
+    this.buff = buffer; this.preview = preview;
     var oldHeight = buffer.offsetHeight;
     var oldScroll = $(window).scrollTop();
     buffer.classList.add("hidden-latex");
@@ -123,7 +122,7 @@ var Preview = {
         if (this.hiddentext) { // Only true for messages in Forum (no such variable in method bbcode because people could use <hide> in submissions before)
           var reg = /\[hide=(?:&quot;)?(.*?)(?:&quot;)?\][ \r\n]*((.|\n)*?)[ \r\n]*\[\/hide\]/gmi;
           while (reg.test(text)) {
-            text = text.replace(/\[hide=(?:&quot;)?(.*?)(?:&quot;)?\][ \r\n]*((.|\n)*?)[ \r\n]*\[\/hide\]/gmi, "<div class='clue'><div><button onclick='return false;' class='btn btn-light'>$1</button></div><div class='clue-hide' style='height:auto;!important;'><div class='clue-content'>$2</div></div></div>");
+            text = text.replace(/\[hide=(?:&quot;)?(.*?)(?:&quot;)?\][ \r\n]*((.|\n)*?)[ \r\n]*\[\/hide\]/gmi, "<div class='clue'><div><button onclick='return false;' class='btn btn-ld-light-dark'>$1</button></div><div class='clue-hide' style='height:auto;!important;'><div class='clue-content'>$2</div></div></div>");
           }
         }
         
@@ -210,16 +209,23 @@ var Preview = {
         text = text.
         replace(/&lt;indice&gt;(.*?)&lt;\/indice&gt;/gsmi, '<indice>$1</indice>').
         replace(/<\/indice>[ \r]*<br\/>/g, '</indice>').
-        replace(/<indice>(.*?)<\/indice>/g, "<div class='clue-bis'><div><a href='#' onclick='return false;' class='btn btn-light'>Indice</a></div><div id='indice0' class='clue-hide' style='height:auto;!important;'><div class='clue-content'>$1</div></div></div>")
+        replace(/<indice>(.*?)<\/indice>/g, "<div class='clue-bis'><div><a href='#' onclick='return false;' class='btn btn-ld-light-dark'>Indice</a></div><div id='indice0' class='clue-hide' style='height:auto;!important;'><div class='clue-content'>$1</div></div></div>")
       }
     }
     
-    if (text === this.oldtext) return;
-    this.buffer.innerHTML = this.oldtext = text;
+    if (text === this.preview.innerHTML) return;
+    this.buff.innerHTML = text;
+    
+    // On Firefox there is an issue when swapping the buffers, when the text to preview is long.
+    // The page scrolls a bit every two characters (when buffers are swapped in some order).
+    // For some reason, calling scrollTop() here (after setting innerHTML) solves the issue.
+    $(window).scrollTop();
+    
     this.mjRunning = true;
     this.needUpdate = false;
+    
     MathJax.Hub.Queue(
-      ["Typeset",MathJax.Hub,this.buffer],
+      ["Typeset",MathJax.Hub,this.buff],
       ["PreviewDone",this]
     );
   },

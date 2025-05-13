@@ -34,7 +34,7 @@ jobs:
         bundle install
         #bundle update rake
         #gem update --system 3.0.0
-        #gem install bundler --version 2.2.27
+        #gem install bundler --version 2.2.3
     - name: Test with Rake
       env:
         PGHOST: postgres

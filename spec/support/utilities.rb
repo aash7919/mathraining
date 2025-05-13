@@ -87,11 +87,11 @@ RSpec::Matchers.define :have_user_line do |line_id, rank_str, user|
     end
     
     recent_points = 0
-    twoweeksago = Date.today - 14.days
-    user.solvedproblems.includes(:problem).where("resolution_time > ?", twoweeksago).each do |s|
+    twoweeksago = (Date.today - 13.days).in_time_zone.to_datetime
+    user.solvedproblems.includes(:problem).where("resolution_time >= ?", twoweeksago).each do |s|
       recent_points += s.problem.value
     end
-    user.solvedquestions.includes(:question).where("resolution_time > ?", twoweeksago).each do |s|
+    user.solvedquestions.includes(:question).where("resolution_time >= ?", twoweeksago).each do |s|
       recent_points += s.question.value
     end
     expect(page).to have_selector("#recent_#{line_id}", text: (recent_points == 0 ? "" : "+ " + recent_points.to_s), exact_text: true)
@@ -198,7 +198,7 @@ end
 
 RSpec::Matchers.define :have_controller_create_behavior do |name, behavior, other_params = {}|
   match do |response|
-    post :create, params: {name => FactoryGirl.attributes_for(name)}.merge(other_params)
+    post :create, params: {name => FactoryBot.attributes_for(name)}.merge(other_params)
     expect(response).to have_behavior(behavior)
   end
 end
@@ -213,7 +213,7 @@ end
 RSpec::Matchers.define :have_controller_update_behavior do |obj, behavior, other_params = {}|
   name = obj.class.name.downcase
   match do |response|
-    patch :update, params: {:id => obj.id, name => FactoryGirl.attributes_for(name)}.merge(other_params)
+    patch :update, params: {:id => obj.id, name => FactoryBot.attributes_for(name)}.merge(other_params)
     expect(response).to have_behavior(behavior)
   end
 end

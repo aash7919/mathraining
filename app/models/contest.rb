@@ -46,7 +46,7 @@ class Contest < ActiveRecord::Base
 
   validates :status, presence: true
   validates :description, presence: true, length: { maximum: 16000 } # Limited to 8000 in the form but end-of-lines count twice
-  validates :number, presence: true, numericality: { greater_than: 0 }
+  validates :number, presence: true, numericality: { greater_than: 0 }, uniqueness: true
   validates :bronze_cutoff, presence: true, numericality: { greater_than_or_equal_to: 0 }
   validates :silver_cutoff, presence: true, numericality: { greater_than_or_equal_to: 0 }
   validates :gold_cutoff, presence: true, numericality: { greater_than_or_equal_to: 0 }
@@ -175,7 +175,7 @@ class Contest < ActiveRecord::Base
   # Method called every exact hour (see schedule.rb)
   def self.check_contests_starts
     date_now_plus_1_min = DateTime.now + 1.minute # Security of 1 min in case cron job is earlier (should not happen...)
-    date_in_one_day_plus_1_min = 1.day.from_now + 1.minute # idem
+    date_in_one_day_plus_1_min = date_now_plus_1_min + 1.day # idem
     Contestproblemcheck.all.order(:id).each do |c|
       p = c.contestproblem
       if p.no_reminder_sent? # Check reminder for problem published in one day

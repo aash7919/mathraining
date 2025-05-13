@@ -140,6 +140,7 @@ class User < ActiveRecord::Base
   has_and_belongs_to_many :creating_chapters, -> { distinct }, class_name: "Chapter", join_table: :chaptercreations
   has_and_belongs_to_many :organized_contests, -> { distinct }, class_name: "Contest", join_table: :contestorganizations
   has_and_belongs_to_many :notified_submissions, -> { distinct }, class_name: "Submission", join_table: :notifs
+  has_and_belongs_to_many :favorite_problems, -> { distinct }, class_name: "Problem", join_table: :favoriteproblems
   
   # BEFORE, AFTER
 
@@ -164,7 +165,7 @@ class User < ActiveRecord::Base
   validates :last_name, presence: true, length: { maximum: 32 }
   validates_with CharacterValidator
   VALID_EMAIL_REGEX = /\A[\w+\-.]+@[a-z\d\-.]+\.[a-z]+\z/i
-  validates :email, presence: true, format: { with: VALID_EMAIL_REGEX }, uniqueness: { case_sensitive: false }, on: :create
+  validates :email, presence: true, format: { with: VALID_EMAIL_REGEX }, uniqueness: { case_sensitive: false }
   validates :email_confirmation, presence: true, on: :create
   validates_confirmation_of :email, case_sensitive: false
   validates :password, length: { minimum: 8, maximum: 128 }, on: :create
@@ -248,14 +249,11 @@ class User < ActiveRecord::Base
   end
 
   # Returns [n, d], saying there are n submissions that the user can correct + all submissions of last d days
-  def num_notifications_new(levels, show_all = false)
+  def num_notifications_new(levels, show_all = false, favorite_only = false)
     Groupdate.time_zone = false unless Rails.env.production?
-    x = {}
-    if self.admin?
-      x = Submission.joins(:problem).where(:status => :waiting).where("problems.level in (?)", levels).group_by_day(:created_at).count
-    elsif self.corrector?
-      x = Submission.joins(:problem).where("problem_id IN (SELECT solvedproblems.problem_id FROM solvedproblems WHERE solvedproblems.user_id = #{self.id})").where(:status => :waiting).where("problems.level in (?)", levels).group_by_day(:created_at).count
-    end
+    visible_condition = favorite_only || self.admin? ? "" : "problem_id IN (SELECT solvedproblems.problem_id FROM solvedproblems WHERE solvedproblems.user_id = #{self.id})"
+    fav_condition = favorite_only ? "problem_id IN (SELECT favoriteproblems.problem_id FROM favoriteproblems WHERE favoriteproblems.user_id = #{self.id})" : ""
+    x = Submission.joins(:problem).where(visible_condition).where(fav_condition).where(:status => :waiting).where("problems.level in (?)", levels).group_by_day(:created_at).count
     y = x.sort_by(&:first)
     n = 0
     y.each do |a|
@@ -347,9 +345,14 @@ class User < ActiveRecord::Base
     end
   end
   
-  # Update correction level
-  def update_correction_level
-    num_corrections = self.followings.where("kind > 0").count
+  # If F_0 = 0 and F_1 = 1, then a corrector needs F_(delta+1+i) corrections to be "Chevalier d'ordre i"
+  def self.correction_level_delta
+    return (Rails.env.production? ? 8 : 1)
+  end
+  
+  # Compute actuel correction level
+  def compute_correction_level
+    num_corrections = self.followings.where(:kind => [:first_corrector, :other_corrector]).count
     level = 0
     a = 1
     b = 1
@@ -357,12 +360,31 @@ class User < ActiveRecord::Base
       c = a+b
       a = b
       b = c
-      level = level + 1
+      level += 1
     end
-    level = level - (Rails.env.production? ? 8 : 1)
+    return level - User.correction_level_delta
+  end
+  
+  # Update correction level
+  def update_correction_level
+    level = self.compute_correction_level
     if self.correction_level < level
       self.update_attribute(:correction_level, level)
     end
+  end
+  
+  # Get number of corrections for a given correction level
+  def self.get_threshold_of_correction_level(level)
+    l = level + User.correction_level_delta
+    a = 1
+    b = 1
+    while l > 1
+      c = a+b
+      a = b
+      b = c
+      l -= 1
+    end
+    return b
   end
   
   # Gives the corrector prefix (if any) for the name
@@ -519,7 +541,7 @@ class User < ActiveRecord::Base
       end
     end
     
-    Pointspersection.joins(:section).each do |pps|
+    Pointspersection.joins(:user).where("users.role = ?", User.roles[:student]).each do |pps|
       current_score = pps.points
       problem_score = problem_scores_by_section[pps.section_id][pps.user_id]
       problem_score = 0 if problem_score.nil?

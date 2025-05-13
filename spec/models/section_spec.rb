@@ -14,13 +14,9 @@
 require "spec_helper"
 
 describe Section, section: true do
-  let(:section) { FactoryGirl.build(:section) }
+  let(:section) { FactoryBot.build(:section) }
 
   subject { section }
-
-  it { should respond_to(:name) }
-  it { should respond_to(:description) }
-  it { should respond_to(:chapters) }
 
   it { should be_valid }
 

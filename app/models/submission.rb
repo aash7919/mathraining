@@ -14,6 +14,7 @@
 #  score             :integer          default(-1)
 #  last_comment_time :datetime
 #  star              :boolean          default(FALSE)
+#  old_created_at    :datetime
 #
 class Submission < ActiveRecord::Base
   
@@ -42,13 +43,12 @@ class Submission < ActiveRecord::Base
   
   # BEFORE, AFTER
   
+  after_create :set_old_created_at
   after_create :update_last_comment
   before_destroy { self.notified_users.clear }
 
   # VALIDATIONS
 
-  validates :user_id, presence: true
-  validates :problem_id, presence: true
   validates :content, presence: true, length: { maximum: 16000 } # Limited to 8000 in the form but end-of-lines count twice
   
   # OTHER METHODS
@@ -97,6 +97,11 @@ class Submission < ActiveRecord::Base
   # Tell if the submission has had some activity recently
   def has_recent_activity
     return self.last_comment_time + 2.months > DateTime.now
+  end
+  
+  # Set old_created_at to same value as created_at
+  def set_old_created_at
+    self.update(:old_created_at => self.created_at)
   end
   
   # Update last_comment_time and last_comment_user

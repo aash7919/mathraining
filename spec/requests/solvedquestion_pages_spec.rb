@@ -1,25 +1,25 @@
 # -*- coding: utf-8 -*-
 require "spec_helper"
 
-describe "Solvedquestion pages", question: true do
+describe "Solvedquestion pages", solvedquestion: true do
 
   subject { page }
 
-  let(:admin) { FactoryGirl.create(:admin) }
-  let(:user) { FactoryGirl.create(:user) }
-  let!(:section) { FactoryGirl.create(:section) }
-  let!(:chapter) { FactoryGirl.create(:chapter, section: section, online: true) }
-  let!(:chapter2) { FactoryGirl.create(:chapter, section: section, online: true) }
+  let(:admin) { FactoryBot.create(:admin) }
+  let(:user) { FactoryBot.create(:user) }
+  let!(:section) { FactoryBot.create(:section) }
+  let!(:chapter) { FactoryBot.create(:chapter, section: section, online: true) }
+  let!(:chapter2) { FactoryBot.create(:chapter, section: section, online: true) }
   let!(:exercise_answer) { 6321567 }
-  let!(:exercise) { FactoryGirl.create(:exercise, chapter: chapter, online: true, position: 1, level: 1, answer: exercise_answer) }
+  let!(:exercise) { FactoryBot.create(:exercise, chapter: chapter, online: true, position: 1, level: 1, answer: exercise_answer) }
   let!(:exercise_decimal_answer) { -15.4 }
-  let!(:exercise_decimal) { FactoryGirl.create(:exercise_decimal, chapter: chapter, online: true, position: 2, level: 2, answer: exercise_decimal_answer) }
-  let!(:qcm) { FactoryGirl.create(:qcm, chapter: chapter, online: true, position: 3, level: 3) }
-  let!(:item_correct) { FactoryGirl.create(:item_correct, question: qcm, position: 1) }
-  let!(:item_incorrect) { FactoryGirl.create(:item, question: qcm, position: 2) }
-  let!(:qcm_multiple) { FactoryGirl.create(:qcm_multiple, chapter: chapter2, online: true, position: 4, level: 4) } # Only question of chapter2
-  let!(:item_multiple_correct) { FactoryGirl.create(:item_correct, question: qcm_multiple, position: 1) }
-  let!(:item_multiple_incorrect) { FactoryGirl.create(:item, question: qcm_multiple, position: 2) }
+  let!(:exercise_decimal) { FactoryBot.create(:exercise_decimal, chapter: chapter, online: true, position: 2, level: 2, answer: exercise_decimal_answer) }
+  let!(:qcm) { FactoryBot.create(:qcm, chapter: chapter, online: true, position: 3, level: 3) }
+  let!(:item_correct) { FactoryBot.create(:item_correct, question: qcm, position: 1) }
+  let!(:item_incorrect) { FactoryBot.create(:item, question: qcm, position: 2) }
+  let!(:qcm_multiple) { FactoryBot.create(:qcm_multiple, chapter: chapter2, online: true, position: 4, level: 4) } # Only question of chapter2
+  let!(:item_multiple_correct) { FactoryBot.create(:item_correct, question: qcm_multiple, position: 1) }
+  let!(:item_multiple_incorrect) { FactoryBot.create(:item, question: qcm_multiple, position: 2) }
   
   describe "user", :js => true do
     let!(:rating_before) { user.rating }
@@ -27,7 +27,7 @@ describe "Solvedquestion pages", question: true do
     before { sign_in user }
     
     describe "tries to see the answer to a question he solved" do
-      let!(:solvedquestion) { FactoryGirl.create(:solvedquestion, user: user, question: exercise) }
+      let!(:solvedquestion) { FactoryBot.create(:solvedquestion, user: user, question: exercise) }
       before do
         visit chapter_question_path(chapter, exercise)
         click_button "Voir la réponse"
@@ -41,7 +41,7 @@ describe "Solvedquestion pages", question: true do
     end
     
     describe "tries to see the answer to a question he did NOT solve (hack)" do
-      let!(:solvedquestion) { FactoryGirl.create(:solvedquestion, user: user, question: exercise) } # To have the button 'Voir la réponse'
+      let!(:solvedquestion) { FactoryBot.create(:solvedquestion, user: user, question: exercise) } # To have the button 'Voir la réponse'
       before do
         visit chapter_question_path(chapter, exercise)
         solvedquestion.destroy
@@ -153,7 +153,7 @@ describe "Solvedquestion pages", question: true do
     end
     
     describe "visits a question after 3 errors but 2 minutes", :js => false do
-      let!(:unsolvedquestion) { FactoryGirl.create(:unsolvedquestion, user: user, question: exercise, nb_guess: 3, last_guess_time: DateTime.now - 2.minutes, guess: exercise_answer + 3) }
+      let!(:unsolvedquestion) { FactoryBot.create(:unsolvedquestion, user: user, question: exercise, nb_guess: 3, last_guess_time: DateTime.now - 2.minutes, guess: exercise_answer + 3) }
       before { visit chapter_question_path(chapter, exercise) }
       it do
         should have_button("Soumettre", disabled: true)
@@ -162,7 +162,7 @@ describe "Solvedquestion pages", question: true do
     end
     
     describe "visits a question after 3 errors but 4 minutes", :js => false do
-      let!(:unsolvedquestion) { FactoryGirl.create(:unsolvedquestion, user: user, question: exercise, nb_guess: 3, last_guess_time: DateTime.now - 4.minutes, guess: exercise_answer + 3) }
+      let!(:unsolvedquestion) { FactoryBot.create(:unsolvedquestion, user: user, question: exercise, nb_guess: 3, last_guess_time: DateTime.now - 4.minutes, guess: exercise_answer + 3) }
       before { visit chapter_question_path(chapter, exercise) }
       it do
         should have_button("Soumettre", disabled: false)
@@ -186,7 +186,7 @@ describe "Solvedquestion pages", question: true do
     describe "visits a question and tries to send an answer too early" do
       before do
         visit chapter_question_path(chapter, exercise)
-        FactoryGirl.create(:unsolvedquestion, user: user, question: exercise, nb_guess: 3, last_guess_time: DateTime.now - 2.minutes, guess: exercise_answer + 3)
+        FactoryBot.create(:unsolvedquestion, user: user, question: exercise, nb_guess: 3, last_guess_time: DateTime.now - 2.minutes, guess: exercise_answer + 3)
         fill_in "ans", with: exercise_answer
         click_button "Soumettre"
       end
@@ -407,52 +407,6 @@ describe "Solvedquestion pages", question: true do
           expect(admin.rating).to eq(0)
           expect(admin.pointspersections.where(:section_id => section).first.points).to eq(0)
           expect(admin.chapters.exists?(chapter2.id)).to eq(false) # Even if it's the only question of chapter2
-        end
-      end
-    end
-  end
-  
-  describe "cron job" do
-    let!(:yesterday) { Date.today.in_time_zone - 1.day + 10.hours }
-    let!(:cheater) { FactoryGirl.create(:user) }
-    let!(:sq1)  { FactoryGirl.create(:solvedquestion, user: cheater, resolution_time: yesterday) }
-    let!(:sq2)  { FactoryGirl.create(:solvedquestion, user: cheater, resolution_time: yesterday + 15.seconds) }
-    let!(:sq3)  { FactoryGirl.create(:solvedquestion, user: cheater, resolution_time: yesterday + 40.seconds) }
-    let!(:sq4)  { FactoryGirl.create(:solvedquestion, user: cheater, resolution_time: yesterday + 45.seconds) }
-    let!(:sq5)  { FactoryGirl.create(:solvedquestion, user: cheater, resolution_time: yesterday + 1.minute) }
-    let!(:sq6)  { FactoryGirl.create(:solvedquestion, user: cheater, resolution_time: yesterday + 2.minutes + 4.seconds) }
-    let!(:sq7)  { FactoryGirl.create(:solvedquestion, user: cheater, resolution_time: yesterday + 5.minutes) }
-    let!(:sq8)  { FactoryGirl.create(:solvedquestion, user: cheater, resolution_time: yesterday + 5.minutes + 10.seconds) }
-    let!(:sq9)  { FactoryGirl.create(:solvedquestion, user: cheater, resolution_time: yesterday + 11.minutes) }
-    let!(:sq10) { FactoryGirl.create(:solvedquestion, user: cheater, resolution_time: yesterday + 11.minutes + 40.seconds) }
-    let!(:sq11) { FactoryGirl.create(:solvedquestion, user: cheater, resolution_time: yesterday + 12.minutes + 20.seconds) }
-    let!(:sq12) { FactoryGirl.create(:solvedquestion, user: cheater, resolution_time: yesterday + 12.minutes + 30.seconds) }
-    let!(:sq13) { FactoryGirl.create(:solvedquestion, user: cheater, resolution_time: yesterday + 12.minutes + 40.seconds) }
-    let!(:sq14) { FactoryGirl.create(:solvedquestion, user: cheater, resolution_time: yesterday + 12.minutes + 50.seconds) }
-    
-    describe "searches for suspicious users for the first time" do
-      before do
-        Subject.where(:subject_type => :corrector_alerts).destroy_all
-        Solvedquestion.detect_suspicious_users
-      end
-      specify do
-        expect(Subject.where(:subject_type => :corrector_alerts).count).to eq(1)
-        expect(Subject.last.messages.count).to eq(1)
-        expect(Subject.last.messages.last.user_id).to eq(0)
-        expect(Subject.last.messages.last.content).to include(cheater.name)
-        expect(Subject.last.messages.last.content).to include("a résolu 6 exercices en 3 minutes et 8 exercices en 10 minutes")
-        expect(Subject.last.messages.last.content).to include("Il a résolu 10 exercices après moins d'une minute de réflexion, dont un en 5 secondes")
-      end
-      
-      describe "and searches a second time" do
-        before { Solvedquestion.detect_suspicious_users }
-        specify do
-          expect(Subject.where(:subject_type => :corrector_alerts).count).to eq(1)
-          expect(Subject.last.messages.count).to eq(2)
-          expect(Message.last.user_id).to eq (0)
-          expect(Message.last.content).to include(cheater.name)
-          expect(Message.last.content).to include("a résolu 6 exercices en 3 minutes et 8 exercices en 10 minutes")
-          expect(Message.last.content).to include("Il a résolu 10 exercices après moins d'une minute de réflexion, dont un en 5 secondes")
         end
       end
     end
